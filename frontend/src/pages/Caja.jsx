@@ -2,17 +2,16 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { 
   Coins, 
-  Plus, 
   ArrowUpRight, 
   ArrowDownLeft, 
   Lock, 
   Unlock, 
-  FileText, 
   AlertTriangle,
   History,
   CheckCircle2,
   XCircle,
-  Clock
+  Clock,
+  X
 } from 'lucide-react';
 
 const Caja = () => {
