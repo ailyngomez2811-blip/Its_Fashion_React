@@ -223,11 +223,74 @@ const searchProducts = async (req, res) => {
   }
 };
 
+// @desc    Obtener historial de Kárdex (Movimientos de Inventario)
+// @route   GET /api/products/kardex
+// @access  Private
+const getKardex = async (req, res) => {
+  try {
+    const history = await InventoryHistory.find({})
+      .populate('producto', 'nombre talla color')
+      .populate('usuario', 'nombre apellido')
+      .sort({ fecha: -1 });
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ ok: false, msg: error.message });
+  }
+};
+
+// @desc    Ajustar stock manualmente
+// @route   POST /api/products/:id/adjust
+// @access  Private/Admin
+const adjustStock = async (req, res) => {
+  const { tipo_movimiento, cantidad, concepto } = req.body;
+  const qty = parseInt(cantidad);
+
+  if (!tipo_movimiento || isNaN(qty) || qty <= 0 || !concepto) {
+    return res.status(400).json({ ok: false, msg: 'Completa todos los campos con valores válidos' });
+  }
+
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ ok: false, msg: 'Producto no encontrado' });
+    }
+
+    if (tipo_movimiento === 'Salida' && product.stock < qty) {
+      return res.status(400).json({ ok: false, msg: `Stock insuficiente para realizar el ajuste. Stock actual: ${product.stock}` });
+    }
+
+    // Actualizar stock
+    if (tipo_movimiento === 'Entrada') {
+      product.stock += qty;
+    } else {
+      product.stock -= qty;
+    }
+
+    await product.save();
+
+    // Registrar en Kardex
+    await InventoryHistory.create({
+      producto: product._id,
+      tipo_movimiento,
+      cantidad: qty,
+      stock_disponible: product.stock,
+      concepto: concepto.trim(),
+      usuario: req.user._id // Usuario que registra el ajuste
+    });
+
+    res.json({ ok: true, msg: 'Ajuste de inventario realizado correctamente', stock: product.stock });
+  } catch (error) {
+    res.status(500).json({ ok: false, msg: error.message });
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
   createProduct,
   updateProduct,
   toggleProductStatus,
-  searchProducts
+  searchProducts,
+  getKardex,
+  adjustStock
 };
