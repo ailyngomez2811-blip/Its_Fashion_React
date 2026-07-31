@@ -5,7 +5,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
 // Páginas del Sistema
-import Welcome from './pages/Welcome';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Usuarios from './pages/Usuarios';
@@ -25,15 +24,12 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Ruta Pública Principal: Welcome / Landing Page */}
-          <Route path="/" element={<Welcome />} />
-
           {/* Ruta Pública: Login */}
           <Route path="/login" element={<Login />} />
 
           {/* Ruta Protegida Principal: Dashboard */}
           <Route 
-            path="/dashboard" 
+            path="/" 
             element={
               <ProtectedRoute>
                 <Layout title="Dashboard">

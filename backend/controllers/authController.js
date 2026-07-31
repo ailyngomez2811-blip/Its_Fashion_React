@@ -53,7 +53,13 @@ const authUser = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const user = await User.findOne({ username });
+    // Buscar al usuario por nombre de usuario o por correo electrónico
+    const user = await User.findOne({ 
+      $or: [
+        { username: username }, 
+        { email: username }
+      ] 
+    });
 
     if (user && (await user.matchPassword(password))) {
       if (user.estado === 'Inactivo') {
