@@ -10,7 +10,9 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   rol: { type: String, enum: ['Administrador', 'Empleado', 'Cliente'], default: 'Cliente' },
   estado: { type: String, enum: ['Activo', 'Inactivo'], default: 'Activo' },
-  fecha_registro: { type: Date, default: Date.now }
+  fecha_registro: { type: Date, default: Date.now },
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date }
 });
 
 // Encriptar password antes de guardar

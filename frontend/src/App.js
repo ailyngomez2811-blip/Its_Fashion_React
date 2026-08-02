@@ -1,43 +1,103 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, AuthContext } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
-// Páginas del Sistema
+// Public Pages
 import Welcome from './pages/Welcome';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Usuarios from './pages/Usuarios';
-import Clientes from './pages/Clientes';
-import Productos from './pages/Productos';
-import Categorias from './pages/Categorias';
-import Ventas from './pages/Ventas';
-import Compras from './pages/Compras';
-import Inventario from './pages/Inventario';
-import Devoluciones from './pages/Devoluciones';
-import Proveedores from './pages/Proveedores';
-import Caja from './pages/Caja';
-import Reportes from './pages/Reportes';
+import Login from './pages/auth/Login';
+import Register from './pages/auth/Register';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+
+// Admin Pages
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminCategorias from './pages/admin/Categorias';
+import AdminProductos from './pages/admin/Productos';
+import AdminProveedores from './pages/admin/Proveedores';
+import AdminCompras from './pages/admin/Compras';
+import AdminVentas from './pages/admin/Ventas';
+import AdminDevoluciones from './pages/admin/Devoluciones';
+import AdminCaja from './pages/admin/Caja';
+import AdminInventario from './pages/admin/Inventario';
+import AdminUsuarios from './pages/admin/Usuarios';
+import AdminClientes from './pages/admin/Clientes';
+import AdminReportes from './pages/admin/Reportes';
+
+// Empleado Pages
+import EmpleadoDashboard from './pages/empleado/Dashboard';
+import EmpleadoCaja from './pages/empleado/Caja';
+import EmpleadoCompras from './pages/empleado/Compras';
+import EmpleadoInventario from './pages/empleado/Inventario';
+import EmpleadoVentas from './pages/empleado/Ventas';
+
+// Cliente Pages
+import ClienteDashboard from './pages/cliente/Dashboard';
+import ClienteMisCompras from './pages/cliente/MisCompras';
+import ClienteMisDevoluciones from './pages/cliente/MisDevoluciones';
+import ClientePerfil from './pages/cliente/Perfil';
+
+// Selectores Dinámicos de Componentes por Rol
+const DashboardSelector = () => {
+  const { user } = useContext(AuthContext);
+  if (user?.rol === 'Administrador') return <AdminDashboard />;
+  if (user?.rol === 'Empleado') return <EmpleadoDashboard />;
+  if (user?.rol === 'Cliente') return <ClienteDashboard />;
+  return null;
+};
+
+const CajaSelector = () => {
+  const { user } = useContext(AuthContext);
+  if (user?.rol === 'Administrador') return <AdminCaja />;
+  if (user?.rol === 'Empleado') return <EmpleadoCaja />;
+  return <Navigate to="/dashboard" replace />;
+};
+
+const ComprasSelector = () => {
+  const { user } = useContext(AuthContext);
+  if (user?.rol === 'Administrador') return <AdminCompras />;
+  if (user?.rol === 'Empleado') return <EmpleadoCompras />;
+  return <Navigate to="/dashboard" replace />;
+};
+
+const InventarioSelector = () => {
+  const { user } = useContext(AuthContext);
+  if (user?.rol === 'Administrador') return <AdminInventario />;
+  if (user?.rol === 'Empleado') return <EmpleadoInventario />;
+  return <Navigate to="/dashboard" replace />;
+};
+
+const VentasSelector = () => {
+  const { user } = useContext(AuthContext);
+  if (user?.rol === 'Administrador') return <AdminVentas />;
+  if (user?.rol === 'Empleado') return <EmpleadoVentas />;
+  return <Navigate to="/dashboard" replace />;
+};
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Ruta Pública Principal: Welcome / Landing Page */}
+          {/* Ruta Pública Principal */}
           <Route path="/" element={<Welcome />} />
 
           {/* Ruta Pública: Login */}
           <Route path="/login" element={<Login />} />
 
-          {/* Ruta Protegida Principal: Dashboard */}
+          {/* Rutas Públicas de Registro y Recuperación */}
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Dashboard Dinámico */}
           <Route 
             path="/dashboard" 
             element={
               <ProtectedRoute>
                 <Layout title="Dashboard">
-                  <Dashboard />
+                  <DashboardSelector />
                 </Layout>
               </ProtectedRoute>
             } 
@@ -49,7 +109,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Administrador']}>
                 <Layout title="Usuarios">
-                  <Usuarios />
+                  <AdminUsuarios />
                 </Layout>
               </ProtectedRoute>
             } 
@@ -60,7 +120,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Administrador']}>
                 <Layout title="Clientes">
-                  <Clientes />
+                  <AdminClientes />
                 </Layout>
               </ProtectedRoute>
             } 
@@ -71,7 +131,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Administrador']}>
                 <Layout title="Productos">
-                  <Productos />
+                  <AdminProductos />
                 </Layout>
               </ProtectedRoute>
             } 
@@ -82,19 +142,19 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Administrador']}>
                 <Layout title="Categorías">
-                  <Categorias />
+                  <AdminCategorias />
                 </Layout>
               </ProtectedRoute>
             } 
           />
 
-          {/* Rutas de Operaciones */}
+          {/* Rutas de Operaciones (Compartidas/Diferenciadas) */}
           <Route 
             path="/ventas" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['Administrador', 'Empleado']}>
                 <Layout title="Facturación de Ventas">
-                  <Ventas />
+                  <VentasSelector />
                 </Layout>
               </ProtectedRoute>
             } 
@@ -103,9 +163,9 @@ function App() {
           <Route 
             path="/compras" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['Administrador', 'Empleado']}>
                 <Layout title="Abastecimiento">
-                  <Compras />
+                  <ComprasSelector />
                 </Layout>
               </ProtectedRoute>
             } 
@@ -114,31 +174,9 @@ function App() {
           <Route 
             path="/inventario" 
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['Administrador', 'Empleado']}>
                 <Layout title="Kardex de Inventario">
-                  <Inventario />
-                </Layout>
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/devoluciones" 
-            element={
-              <ProtectedRoute>
-                <Layout title="Devoluciones">
-                  <Devoluciones />
-                </Layout>
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/proveedores" 
-            element={
-              <ProtectedRoute>
-                <Layout title="Proveedores">
-                  <Proveedores />
+                  <InventarioSelector />
                 </Layout>
               </ProtectedRoute>
             } 
@@ -147,9 +185,32 @@ function App() {
           <Route 
             path="/caja" 
             element={
-              <ProtectedRoute allowedRoles={['Administrador']}>
+              <ProtectedRoute allowedRoles={['Administrador', 'Empleado']}>
                 <Layout title="Control de Caja">
-                  <Caja />
+                  <CajaSelector />
+                </Layout>
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Devoluciones Administrativas */}
+          <Route 
+            path="/devoluciones" 
+            element={
+              <ProtectedRoute allowedRoles={['Administrador']}>
+                <Layout title="Devoluciones">
+                  <AdminDevoluciones />
+                </Layout>
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/proveedores" 
+            element={
+              <ProtectedRoute allowedRoles={['Administrador']}>
+                <Layout title="Proveedores">
+                  <AdminProveedores />
                 </Layout>
               </ProtectedRoute>
             } 
@@ -161,22 +222,19 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Administrador']}>
                 <Layout title="Reportes">
-                  <Reportes />
+                  <AdminReportes />
                 </Layout>
               </ProtectedRoute>
             } 
           />
 
-          {/* Rutas exclusivas del perfil Cliente (Placeholder) */}
+          {/* Rutas exclusivas del perfil Cliente */}
           <Route 
             path="/mis-compras" 
             element={
               <ProtectedRoute allowedRoles={['Cliente']}>
                 <Layout title="Mis Compras">
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
-                    <h2 className="text-xl font-bold font-serif text-slate-800 mb-2">Mis Compras</h2>
-                    <p className="text-slate-500 font-light">Sección en proceso de migración para clientes.</p>
-                  </div>
+                  <ClienteMisCompras />
                 </Layout>
               </ProtectedRoute>
             } 
@@ -187,10 +245,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Cliente']}>
                 <Layout title="Mis Devoluciones">
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
-                    <h2 className="text-xl font-bold font-serif text-slate-800 mb-2">Mis Devoluciones</h2>
-                    <p className="text-slate-500 font-light">Sección en proceso de migración para clientes.</p>
-                  </div>
+                  <ClienteMisDevoluciones />
                 </Layout>
               </ProtectedRoute>
             } 
@@ -201,10 +256,7 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Cliente']}>
                 <Layout title="Mi Perfil">
-                  <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
-                    <h2 className="text-xl font-bold font-serif text-slate-800 mb-2">Mi Perfil</h2>
-                    <p className="text-slate-500 font-light">Sección en proceso de migración para clientes.</p>
-                  </div>
+                  <ClientePerfil />
                 </Layout>
               </ProtectedRoute>
             } 

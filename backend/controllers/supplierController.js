@@ -16,7 +16,7 @@ const getSuppliers = async (req, res) => {
 // @route   POST /api/suppliers
 // @access  Private/Admin
 const createSupplier = async (req, res) => {
-  const { nombre, contacto, telefono, email, direccion, documento } = req.body;
+  const { nombre, contacto, telefono, email, direccion, documento, estado } = req.body;
 
   try {
     if (!nombre || !documento) {
@@ -34,7 +34,8 @@ const createSupplier = async (req, res) => {
       telefono: telefono?.trim() || '',
       email: email?.trim() || '',
       direccion: direccion?.trim() || '',
-      documento: documento.trim()
+      documento: documento.trim(),
+      estado: estado || 'Activo'
     });
 
     res.status(201).json({ ok: true, msg: 'Proveedor creado correctamente', supplier });
@@ -47,7 +48,7 @@ const createSupplier = async (req, res) => {
 // @route   PUT /api/suppliers/:id
 // @access  Private/Admin
 const updateSupplier = async (req, res) => {
-  const { nombre, contacto, telefono, email, direccion, documento } = req.body;
+  const { nombre, contacto, telefono, email, direccion, documento, estado } = req.body;
 
   try {
     if (!nombre || !documento) {
@@ -70,6 +71,9 @@ const updateSupplier = async (req, res) => {
     supplier.email = email?.trim() || '';
     supplier.direccion = direccion?.trim() || '';
     supplier.documento = documento.trim();
+    if (estado) {
+      supplier.estado = estado;
+    }
 
     await supplier.save();
 

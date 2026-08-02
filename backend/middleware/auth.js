@@ -8,10 +8,13 @@ const protect = async (req, res, next) => {
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
-    try {
-      // Obtener el token de la cabecera
-      token = req.headers.authorization.split(' ')[1];
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.query.token) {
+    token = req.query.token;
+  }
 
+  if (token) {
+    try {
       // Verificar token
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkeyforitsfashionproject123!');
 
@@ -31,9 +34,7 @@ const protect = async (req, res, next) => {
       console.error(error);
       res.status(401).json({ message: 'No autorizado, token fallido' });
     }
-  }
-
-  if (!token) {
+  } else {
     res.status(401).json({ message: 'No autorizado, no hay token' });
   }
 };

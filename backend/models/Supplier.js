@@ -6,7 +6,8 @@ const SupplierSchema = new mongoose.Schema({
   telefono: { type: String, required: true },
   email: { type: String },
   direccion: { type: String },
-  documento: { type: String, required: true, unique: true }
+  documento: { type: String, required: true, unique: true },
+  estado: { type: String, default: 'Activo' }
 });
 
 module.exports = mongoose.model('Supplier', SupplierSchema);

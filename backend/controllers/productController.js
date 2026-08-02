@@ -231,7 +231,7 @@ const getKardex = async (req, res) => {
     const history = await InventoryHistory.find({})
       .populate('producto', 'nombre talla color')
       .populate('usuario', 'nombre apellido')
-      .sort({ fecha: -1 });
+      .sort({ fecha_registro: -1 });
     res.json(history);
   } catch (error) {
     res.status(500).json({ ok: false, msg: error.message });
