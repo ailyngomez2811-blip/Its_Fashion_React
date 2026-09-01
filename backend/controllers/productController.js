@@ -81,6 +81,16 @@ const createProduct = async (req, res) => {
       return res.status(400).json({ ok: false, msg: 'El precio de venta debe ser mayor al precio de compra' });
     }
 
+    // AD0003: Validar combinación única nombre + talla + color
+    const duplicado = await Product.findOne({
+      nombre: { $regex: new RegExp(`^${nombre.trim()}$`, 'i') },
+      talla: { $regex: new RegExp(`^${talla.trim()}$`, 'i') },
+      color: { $regex: new RegExp(`^${color.trim()}$`, 'i') }
+    });
+    if (duplicado) {
+      return res.status(400).json({ ok: false, msg: 'Ya existe un producto con el mismo nombre, talla y color' });
+    }
+
     const product = new Product({
       nombre,
       descripcion,
@@ -146,6 +156,17 @@ const updateProduct = async (req, res) => {
 
     if (precio_venta <= precio_compra) {
       return res.status(400).json({ ok: false, msg: 'El precio de venta debe ser mayor al precio de compra' });
+    }
+
+    // AD0003: Validar combinación única nombre + talla + color (excluyendo el propio producto)
+    const duplicado = await Product.findOne({
+      nombre: { $regex: new RegExp(`^${nombre.trim()}$`, 'i') },
+      talla: { $regex: new RegExp(`^${talla.trim()}$`, 'i') },
+      color: { $regex: new RegExp(`^${color.trim()}$`, 'i') },
+      _id: { $ne: req.params.id }
+    });
+    if (duplicado) {
+      return res.status(400).json({ ok: false, msg: 'Ya existe otro producto con el mismo nombre, talla y color' });
     }
 
     const oldStock = product.stock;

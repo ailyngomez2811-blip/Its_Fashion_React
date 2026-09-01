@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+
 import API from '../../services/api';
 import { 
   ShoppingCart, 
-  Search, 
   Plus, 
   Trash2, 
   X, 
@@ -17,7 +16,6 @@ import {
 } from 'lucide-react';
 
 const Compras = () => {
-  const { user } = useContext(AuthContext);
   const [purchases, setPurchases] = useState([]);
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);

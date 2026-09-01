@@ -481,6 +481,7 @@ const Inventario = () => {
                 <option value="">Todos los Movs</option>
                 <option value="Entrada">Entradas (+)</option>
                 <option value="Salida">Salidas (-)</option>
+                <option value="Ajuste">Ajustes</option>
               </select>
             </div>
           </div>

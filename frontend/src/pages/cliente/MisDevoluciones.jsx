@@ -1,16 +1,12 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import API from '../../services/api';
 import { 
   Undo2, 
   Search, 
   X, 
-  CheckCircle2, 
-  XCircle, 
-  AlertTriangle,
   Eye,
   Clock,
-  Ban,
   Check
 } from 'lucide-react';
 
@@ -25,7 +21,7 @@ const MisDevoluciones = () => {
   const [detailModal, setDetailModal] = useState(false);
   const [selectedReturn, setSelectedReturn] = useState(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const res = await API.get('/returns');
       // Filtrar por cliente
@@ -41,13 +37,13 @@ const MisDevoluciones = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       loadData();
     }
-  }, [user]);
+  }, [user, loadData]);
 
   const handleOpenDetail = (ret) => {
     setSelectedReturn(ret);

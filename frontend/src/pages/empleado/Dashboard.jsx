@@ -5,7 +5,6 @@ import {
   DollarSign, 
   ShoppingCart, 
   Package, 
-  AlertCircle, 
   TrendingUp,
   Undo2
 } from 'lucide-react';

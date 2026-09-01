@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 const Perfil = () => {
-  const { user, login } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
   const [formData, setFormData] = useState({
     nombre: '',

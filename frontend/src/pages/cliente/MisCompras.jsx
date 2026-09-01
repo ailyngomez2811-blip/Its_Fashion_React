@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { AuthContext } from '../../context/AuthContext';
 import API from '../../services/api';
 import { 
@@ -31,27 +31,55 @@ const MisCompras = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  const loadData = async () => {
+  const [returnsList, setReturnsList] = useState([]);
+
+  const loadData = useCallback(async () => {
     try {
-      const res = await API.get('/sales');
+      const [salesRes, returnsRes] = await Promise.all([
+        API.get('/sales'),
+        API.get('/returns')
+      ]);
       // Filtrar las compras que pertenecen al cliente logueado
-      const clientSales = res.data.filter(s => 
+      const clientSales = salesRes.data.filter(s => 
         s.cliente === user?.id || 
         s.cliente?._id === user?.id
       );
+      // Filtrar las devoluciones del cliente logueado
+      const clientReturns = returnsRes.data.filter(r =>
+        r.usuario === user?.id ||
+        r.usuario?._id === user?.id ||
+        r.venta?.cliente === user?.id ||
+        r.venta?.cliente?._id === user?.id
+      );
       setSales(clientSales);
+      setReturnsList(clientReturns);
     } catch (error) {
       console.error('Error al cargar compras del cliente:', error);
     } finally {
       setLoading(false);
     }
+  }, [user]);
+
+  // Retorna las devoluciones asociadas a una venta
+  const getReturnsBySale = (saleId) => {
+    return returnsList.filter(r => r.venta?._id === saleId || r.venta === saleId);
+  };
+
+  // Calcula el total a devolver en base a los items seleccionados
+  const calcDevTotal = () => {
+    if (!selectedSale) return 0;
+    return selectedSale.detalles.reduce((acc, det) => {
+      const prodId = det.producto?._id || det.producto;
+      const qty = devItems[prodId] || 0;
+      return acc + qty * det.precio_unitario;
+    }, 0);
   };
 
   useEffect(() => {
     if (user) {
       loadData();
     }
-  }, [user]);
+  }, [user, loadData]);
 
   const showToast = (msg, isSuccess = true) => {
     if (isSuccess) {
@@ -235,9 +263,18 @@ const MisCompras = () => {
                     </td>
                     <td className="px-6 py-4 font-bold text-slate-800">${s.total.toLocaleString('es-CO')}</td>
                     <td className="px-6 py-4">
-                      <span className={`badge ${s.estado === 'Completada' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                        {s.estado}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`badge ${s.estado === 'Completada' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                          {s.estado}
+                        </span>
+                        {/* CL0003: Indicador visual si la compra tiene devoluciones */}
+                        {getReturnsBySale(s._id).length > 0 && (
+                          <span className="badge bg-amber-50 text-amber-700 border border-amber-200 text-[10px]">
+                            <Undo2 className="w-2.5 h-2.5 mr-0.5 inline" />
+                            {getReturnsBySale(s._id).length === 1 ? 'Devolución' : `${getReturnsBySale(s._id).length} devoluciones`}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -402,6 +439,14 @@ const MisCompras = () => {
                   className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white resize-none"
                 ></textarea>
               </div>
+
+              {/* CL0004: Total calculado de la devolución */}
+              {calcDevTotal() > 0 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex justify-between items-center text-sm font-bold text-amber-800">
+                  <span>Total a devolver:</span>
+                  <span>${calcDevTotal().toLocaleString('es-CO')}</span>
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4 mt-6">
                 <button type="button" onClick={() => setDevModal(false)} className="px-5 py-2.5 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition">Cancelar</button>
