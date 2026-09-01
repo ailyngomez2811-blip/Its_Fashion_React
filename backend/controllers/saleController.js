@@ -44,7 +44,8 @@ const getSaleById = async (req, res) => {
 // @route   POST /api/sales
 // @access  Private
 const createSale = async (req, res) => {
-  const { metodo_pago, id_cliente, items } = req.body;
+  const { metodo_pago, id_cliente } = req.body;
+  const items = req.body.items || req.body.detalles;
 
   if (!items || items.length === 0) {
     return res.status(400).json({ ok: false, msg: 'Agrega al menos un producto' });
@@ -60,23 +61,24 @@ const createSale = async (req, res) => {
     return res.status(400).json({ ok: false, msg: 'Debes abrir la caja antes de registrar ventas en efectivo' });
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     let total = 0;
     const details = [];
 
     // Validar stock de todos los productos primero
     for (const item of items) {
-      const product = await Product.findById(item.id_producto).session(session);
+      const product = await Product.findById(item.id_producto);
       if (!product || product.estado !== 'Activo') {
-        throw new Error(`El producto ${item.nombre || item.id_producto} no está activo o no existe`);
+        return res.status(400).json({ ok: false, msg: `El producto ${item.nombre || item.id_producto} no está activo o no existe` });
       }
       if (product.stock < item.cantidad) {
-        throw new Error(`Stock insuficiente para el producto ${product.nombre}`);
+        return res.status(400).json({ ok: false, msg: `Stock insuficiente para el producto ${product.nombre}` });
       }
+    }
 
+    // Procesar descuento y registrar kardex
+    for (const item of items) {
+      const product = await Product.findById(item.id_producto);
       const subtotal = item.cantidad * product.precio_venta;
       total += subtotal;
 
@@ -88,16 +90,16 @@ const createSale = async (req, res) => {
 
       // Descontar stock
       product.stock -= item.cantidad;
-      await product.save({ session });
+      await product.save();
 
       // Registrar movimiento de inventario (Kardex)
-      await InventoryHistory.create([{
+      await InventoryHistory.create({
         producto: product._id,
         stock_disponible: product.stock,
         cantidad: item.cantidad,
         tipo_movimiento: 'Salida',
         concepto: `Venta registrada`
-      }], { session });
+      });
     }
 
     // Crear la venta
@@ -110,7 +112,7 @@ const createSale = async (req, res) => {
       detalles: details
     });
 
-    const savedSale = await newSale.save({ session });
+    const savedSale = await newSale.save();
 
     // Si hay una caja abierta (para Efectivo o Transferencia), registrar el movimiento
     if (activeRegister) {
@@ -121,16 +123,11 @@ const createSale = async (req, res) => {
         fecha: Date.now()
       });
       activeRegister.total_ingresos += total;
-      await activeRegister.save({ session });
+      await activeRegister.save();
     }
-
-    await session.commitTransaction();
-    session.endSession();
 
     res.status(201).json({ ok: true, msg: 'Venta registrada correctamente', id_venta: savedSale._id });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(400).json({ ok: false, msg: error.message });
   }
 };

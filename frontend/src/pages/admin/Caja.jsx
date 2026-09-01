@@ -390,9 +390,9 @@ const Caja = () => {
                       {h.usuario?.nombre} {h.usuario?.apellido}
                     </td>
                     <td className="px-6 py-4 font-medium">${h.saldo_inicial.toLocaleString('es-CO')}</td>
-                    <td className="px-6 py-4 font-medium">{h.saldo_final !== undefined ? `$${h.saldo_final.toLocaleString('es-CO')}` : '—'}</td>
+                    <td className="px-6 py-4 font-medium">{h.saldo_final != null ? `$${h.saldo_final.toLocaleString('es-CO')}` : '—'}</td>
                     <td className="px-6 py-4">
-                      {h.diferencia !== undefined ? (
+                      {h.diferencia != null ? (
                         <span className={`font-bold ${h.diferencia === 0 ? 'text-green-600' : 'text-red-500'}`}>
                           ${h.diferencia.toLocaleString('es-CO')}
                         </span>

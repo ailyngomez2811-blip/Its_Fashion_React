@@ -65,7 +65,7 @@ const MisDevoluciones = () => {
   const pendingCount = returnsList.filter(r => r.estado === 'Pendiente').length;
   const acceptedTotal = returnsList
     .filter(r => r.estado === 'Aceptada')
-    .reduce((acc, r) => acc + r.monto_devuelto, 0);
+    .reduce((acc, r) => acc + (r.total_devolucion ?? r.monto_devuelto ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -183,7 +183,7 @@ const MisDevoluciones = () => {
                     <td className="px-6 py-4 text-slate-700 truncate max-w-xs" title={r.motivo}>
                       {r.motivo}
                     </td>
-                    <td className="px-6 py-4 font-bold text-slate-800">${r.monto_devuelto.toLocaleString('es-CO')}</td>
+                    <td className="px-6 py-4 font-bold text-slate-800">${(r.total_devolucion ?? r.monto_devuelto ?? 0).toLocaleString('es-CO')}</td>
                     <td className="px-6 py-4">
                       <span className={`badge ${
                         r.estado === 'Aceptada' ? 'bg-green-50 text-green-700 border border-green-200' :
@@ -268,7 +268,7 @@ const MisDevoluciones = () => {
               <div className="border-t border-slate-100 pt-3">
                 <h4 className="font-semibold text-slate-800 text-sm mb-2">Artículos Devueltos</h4>
                 <div className="space-y-3">
-                  {selectedReturn.productos.map((item, idx) => (
+                  {(selectedReturn.detalles || selectedReturn.productos || []).map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-100">
                       <div>
                         <p className="font-bold text-slate-800">{item.producto?.nombre || 'Producto'}</p>
@@ -284,7 +284,7 @@ const MisDevoluciones = () => {
 
               <div className="border-t border-slate-100 pt-4 flex justify-between items-center font-bold text-sm text-slate-800">
                 <span>Monto Reintegrado:</span>
-                <span>${selectedReturn.monto_devuelto.toLocaleString('es-CO')}</span>
+                <span>${(selectedReturn.total_devolucion ?? selectedReturn.monto_devuelto ?? 0).toLocaleString('es-CO')}</span>
               </div>
             </div>
           </div>

@@ -46,7 +46,8 @@ const getReturnById = async (req, res) => {
 // @route   POST /api/returns
 // @access  Private
 const createReturn = async (req, res) => {
-  const { id_venta, motivo, items } = req.body;
+  const { id_venta, motivo } = req.body;
+  const items = req.body.items || req.body.productos || req.body.detalles;
 
   if (!id_venta || !motivo || !items || items.length === 0) {
     return res.status(400).json({ ok: false, msg: 'Datos incompletos' });
@@ -62,15 +63,17 @@ const createReturn = async (req, res) => {
       return res.status(400).json({ ok: false, msg: 'Solo se pueden devolver ventas completadas' });
     }
 
-    // Validar cantidades contra la venta original
-    // Creamos un mapa de lo comprado en la venta original
+    // Validar cantidades contra la venta original y extraer precios
     const originalSaleItems = {};
+    const originalPriceMap = {};
     for (const det of sale.detalles) {
-      originalSaleItems[det.producto.toString()] = det.cantidad;
+      const pId = det.producto.toString();
+      originalSaleItems[pId] = det.cantidad;
+      originalPriceMap[pId] = det.precio_unitario;
     }
 
     for (const item of items) {
-      const pIdStr = item.id_producto;
+      const pIdStr = (item.id_producto || item.producto).toString();
       if (!originalSaleItems[pIdStr] || item.cantidad > originalSaleItems[pIdStr]) {
         return res.status(400).json({ ok: false, msg: 'Cantidad supera lo comprado en la venta original' });
       }
@@ -80,11 +83,13 @@ const createReturn = async (req, res) => {
     const details = [];
 
     for (const item of items) {
-      total_devolucion += item.cantidad * item.precio_unitario;
+      const pIdStr = (item.id_producto || item.producto).toString();
+      const precioUnit = item.precio_unitario || originalPriceMap[pIdStr] || 0;
+      total_devolucion += item.cantidad * precioUnit;
       details.push({
-        producto: item.id_producto,
+        producto: pIdStr,
         cantidad: item.cantidad,
-        precio_unitario: item.precio_unitario
+        precio_unitario: precioUnit
       });
     }
 
@@ -107,11 +112,8 @@ const createReturn = async (req, res) => {
 // @route   POST /api/returns/:id/approve
 // @access  Private/Admin
 const approveReturn = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const ret = await Return.findById(req.params.id).session(session);
+    const ret = await Return.findById(req.params.id);
     if (!ret || ret.estado !== 'Pendiente') {
       return res.status(400).json({ ok: false, msg: 'No se pudo aceptar (ya fue procesada o no existe)' });
     }
@@ -123,26 +125,26 @@ const approveReturn = async (req, res) => {
 
     // Devolver stock y registrar movimiento Kardex
     for (const item of ret.detalles) {
-      const product = await Product.findById(item.producto).session(session);
+      const product = await Product.findById(item.producto);
       if (product) {
         product.stock += item.cantidad;
-        await product.save({ session });
+        await product.save();
 
         // Kardex log Entrada
-        await InventoryHistory.create([{
+        await InventoryHistory.create({
           producto: product._id,
           stock_disponible: product.stock,
           cantidad: item.cantidad,
           tipo_movimiento: 'Entrada',
           concepto: `Devolución aceptada #${ret._id.toString().substring(18)}`
-        }], { session });
+        });
       }
     }
 
     // Registrar egreso en caja si hay una abierta
-    const activeRegister = await CashRegister.findOne({ estado: 'Abierta' }).session(session);
+    const activeRegister = await CashRegister.findOne({ estado: 'Abierta' });
     if (activeRegister) {
-      const sale = await Sale.findById(ret.venta).session(session);
+      const sale = await Sale.findById(ret.venta);
       const metodo = sale ? sale.metodo_pago : 'Indeterminado';
 
       activeRegister.movimientos.push({
@@ -152,18 +154,13 @@ const approveReturn = async (req, res) => {
         fecha: Date.now()
       });
       activeRegister.total_egresos += ret.total_devolucion;
-      await activeRegister.save({ session });
+      await activeRegister.save();
     }
 
-    await ret.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await ret.save();
 
     res.json({ ok: true, msg: 'Devolución aceptada correctamente' });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(500).json({ ok: false, msg: error.message });
   }
 };

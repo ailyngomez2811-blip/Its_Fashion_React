@@ -42,7 +42,8 @@ const getPurchaseById = async (req, res) => {
 // @route   POST /api/purchases
 // @access  Private
 const createPurchase = async (req, res) => {
-  const { id_proveedor, items } = req.body;
+  const { id_proveedor } = req.body;
+  const items = req.body.items || req.body.detalles;
 
   if (!id_proveedor) {
     return res.status(400).json({ ok: false, msg: 'Selecciona un proveedor' });
@@ -51,41 +52,40 @@ const createPurchase = async (req, res) => {
     return res.status(400).json({ ok: false, msg: 'Agrega al menos un producto' });
   }
 
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     let total = 0;
     const details = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.id_producto).session(session);
+      const product = await Product.findById(item.id_producto);
       if (!product) {
-        throw new Error(`El producto con ID ${item.id_producto} no existe`);
+        return res.status(400).json({ ok: false, msg: `El producto con ID ${item.id_producto} no existe` });
       }
 
-      const subtotal = item.cantidad * item.precio_unitario;
+      const cost = item.precio_compra || item.precio_unitario || product.precio_compra;
+      const subtotal = item.cantidad * cost;
       total += subtotal;
 
       details.push({
         producto: product._id,
         cantidad: item.cantidad,
-        precio_unitario: item.precio_unitario,
+        precio_unitario: cost,
+        precio_compra: cost,
         subtotal
       });
 
       // Aumentar stock del producto
       product.stock += item.cantidad;
-      await product.save({ session });
+      await product.save();
 
       // Registrar movimiento de inventario (Kardex: Entrada)
-      await InventoryHistory.create([{
+      await InventoryHistory.create({
         producto: product._id,
         stock_disponible: product.stock,
         cantidad: item.cantidad,
         tipo_movimiento: 'Entrada',
         concepto: 'Compra registrada'
-      }], { session });
+      });
     }
 
     const newPurchase = new Purchase({
@@ -95,15 +95,10 @@ const createPurchase = async (req, res) => {
       detalles: details
     });
 
-    const savedPurchase = await newPurchase.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    const savedPurchase = await newPurchase.save();
 
     res.status(201).json({ ok: true, msg: 'Compra registrada correctamente', id_compra: savedPurchase._id });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(400).json({ ok: false, msg: error.message });
   }
 };

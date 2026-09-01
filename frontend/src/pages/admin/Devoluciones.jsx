@@ -30,6 +30,7 @@ const Devoluciones = () => {
   // Modales
   const [detailModal, setDetailModal] = useState(false);
   const [selectedReturn, setSelectedReturn] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null); // { type: 'approve' | 'reject', ret: Object }
 
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -63,41 +64,54 @@ const Devoluciones = () => {
     }
   };
 
-  const handleApprove = async (ret) => {
-    if (!window.confirm(`¿Estás seguro de APROBAR la devolución de la venta #${ret.venta?._id?.substring(18)}? Esto afectará el stock y registrará un egreso de caja.`)) {
-      return;
-    }
-
-    try {
-      const res = await API.post(`/returns/${ret._id}/approve`);
-      if (res.data.ok) {
-        showToast('Devolución aprobada exitosamente');
-        loadReturns();
-        if (selectedReturn?._id === ret._id) {
-          setDetailModal(false);
-        }
-      }
-    } catch (error) {
-      showToast(error.response?.data?.msg || 'Error al aprobar devolución', false);
-    }
+  const handleApprove = (ret) => {
+    setConfirmModal({
+      type: 'approve',
+      ret,
+      title: 'Aprobar Devolución',
+      message: `¿Estás seguro de APROBAR la devolución de la venta #${ret.venta?._id?.substring(18) || ret.venta}?`,
+      subMessage: 'Esta acción aumentará el stock de las prendas y registrará un egreso de efectivo en la caja registradora.',
+      confirmBtnText: 'Sí, Aprobar Devolución',
+      confirmBtnClass: 'bg-emerald-600 hover:bg-emerald-700 text-white'
+    });
   };
 
-  const handleReject = async (ret) => {
-    if (!window.confirm(`¿Estás seguro de RECHAZAR la devolución?`)) {
-      return;
-    }
+  const handleReject = (ret) => {
+    setConfirmModal({
+      type: 'reject',
+      ret,
+      title: 'Rechazar Devolución',
+      message: `¿Estás seguro de RECHAZAR la solicitud de devolución #${ret._id?.substring(18)}?`,
+      subMessage: 'La solicitud quedará archivada como rechazada y no se modificará el stock ni el saldo de caja.',
+      confirmBtnText: 'Sí, Rechazar Solicitud',
+      confirmBtnClass: 'bg-red-600 hover:bg-red-700 text-white'
+    });
+  };
+
+  const handleExecuteConfirm = async () => {
+    if (!confirmModal) return;
+    const { type, ret } = confirmModal;
 
     try {
-      const res = await API.post(`/returns/${ret._id}/reject`);
-      if (res.data.ok) {
-        showToast('Devolución rechazada');
-        loadReturns();
-        if (selectedReturn?._id === ret._id) {
-          setDetailModal(false);
+      if (type === 'approve') {
+        const res = await API.post(`/returns/${ret._id}/approve`);
+        if (res.data.ok) {
+          showToast('Devolución aprobada exitosamente');
+          loadReturns();
+          if (selectedReturn?._id === ret._id) setDetailModal(false);
+        }
+      } else {
+        const res = await API.post(`/returns/${ret._id}/reject`);
+        if (res.data.ok) {
+          showToast('Devolución rechazada');
+          loadReturns();
+          if (selectedReturn?._id === ret._id) setDetailModal(false);
         }
       }
     } catch (error) {
-      showToast(error.response?.data?.msg || 'Error al rechazar devolución', false);
+      showToast(error.response?.data?.msg || `Error al ${type === 'approve' ? 'aprobar' : 'rechazar'} devolución`, false);
+    } finally {
+      setConfirmModal(null);
     }
   };
 
@@ -278,7 +292,7 @@ const Devoluciones = () => {
                     <td className="px-6 py-4 text-slate-700">
                       {r.cliente ? `${r.cliente.nombre} ${r.cliente.apellido}` : 'Venta General (Mostrador)'}
                     </td>
-                    <td className="px-6 py-4 font-bold text-slate-800">${r.monto_devuelto.toLocaleString('es-CO')}</td>
+                    <td className="px-6 py-4 font-bold text-slate-800">${(r.total_devolucion ?? r.monto_devuelto ?? 0).toLocaleString('es-CO')}</td>
                     <td className="px-6 py-4">
                       <span className={`badge ${
                         r.estado === 'Aceptada' ? 'bg-green-50 text-green-700 border border-green-200' :
@@ -377,11 +391,11 @@ const Devoluciones = () => {
               {/* Items */}
               <div className="space-y-2">
                 <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Artículos Devueltos</span>
-                {selectedReturn.productos.map((p, idx) => (
+                {(selectedReturn.detalles || selectedReturn.productos || []).map((p, idx) => (
                   <div key={idx} className="flex justify-between items-center py-1.5">
                     <div className="flex-1 pr-2">
                       <p className="font-semibold text-slate-800">{p.producto?.nombre || 'Prenda'}</p>
-                      <p className="text-[10px] text-slate-400 font-light">Talla {p.producto?.talla} / Color {p.producto?.color} — {p.cantidad} ud x ${p.precio_unitario?.toLocaleString('es-CO')}</p>
+                      <p className="text-[10px] text-slate-400 font-light">Talla {p.producto?.talla} / Color {p.producto?.color} — {p.cantidad} ud x ${(p.precio_unitario || 0).toLocaleString('es-CO')}</p>
                     </div>
                     <span className="font-bold text-slate-800">${(p.cantidad * (p.precio_unitario || 0)).toLocaleString('es-CO')}</span>
                   </div>
@@ -391,7 +405,7 @@ const Devoluciones = () => {
               {/* Total */}
               <div className="border-t border-slate-200 pt-3 flex justify-between items-center text-sm font-bold text-slate-800">
                 <span>Total Reembolsado</span>
-                <span className="text-blue-600 text-lg">${selectedReturn.monto_devuelto.toLocaleString('es-CO')}</span>
+                <span className="text-blue-600 text-lg">${(selectedReturn.total_devolucion ?? selectedReturn.monto_devuelto ?? 0).toLocaleString('es-CO')}</span>
               </div>
             </div>
 
@@ -415,6 +429,45 @@ const Devoluciones = () => {
                 )}
               </div>
               <button onClick={() => setDetailModal(false)} className="px-5 py-2 border border-slate-200 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMACIÓN MODERNO Y ESTÉTICO */}
+      {confirmModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-scale-up border border-slate-100 p-6 space-y-5">
+            <div className="flex items-start gap-4">
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md ${
+                confirmModal.type === 'approve' 
+                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-emerald-500/10' 
+                  : 'bg-red-50 text-red-600 border border-red-100 shadow-red-500/10'
+              }`}>
+                {confirmModal.type === 'approve' ? <CheckCircle2 className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />}
+              </div>
+              <div className="space-y-1 flex-1">
+                <h3 className="text-lg font-serif font-bold text-slate-800">{confirmModal.title}</h3>
+                <p className="text-sm text-slate-700 font-medium leading-snug">{confirmModal.message}</p>
+                <p className="text-xs text-slate-500 font-light leading-relaxed pt-1">{confirmModal.subMessage}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button 
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="px-4 py-2.5 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-50 transition"
+              >
+                Cancelar
+              </button>
+              <button 
+                type="button"
+                onClick={handleExecuteConfirm}
+                className={`px-5 py-2.5 text-xs font-semibold rounded-xl transition shadow-md ${confirmModal.confirmBtnClass}`}
+              >
+                {confirmModal.confirmBtnText}
+              </button>
             </div>
           </div>
         </div>

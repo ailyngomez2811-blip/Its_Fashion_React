@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const PurchaseItemSchema = new mongoose.Schema({
   producto: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
   cantidad: { type: Number, required: true },
-  precio_unitario: { type: Number, required: true },
+  precio_unitario: { type: Number },
+  precio_compra: { type: Number },
   subtotal: { type: Number, required: true }
 });
 

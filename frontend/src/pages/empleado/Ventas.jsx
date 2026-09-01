@@ -599,11 +599,11 @@ const Ventas = () => {
               {/* Agregar prendas */}
               <div className="border-t border-slate-100 pt-4">
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Seleccionar Prenda para el Carrito</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <select 
                     value={selectedProdId}
                     onChange={(e) => setSelectedProdId(e.target.value)}
-                    className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white cursor-pointer"
+                    className="flex-1 min-w-0 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white cursor-pointer truncate"
                   >
                     <option value="">Seleccionar prenda...</option>
                     {products.map(p => (
@@ -612,21 +612,24 @@ const Ventas = () => {
                       </option>
                     ))}
                   </select>
-                  <input 
-                    type="number" 
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    placeholder="Cant."
-                    min="1"
-                    className="w-20 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white"
-                  />
-                  <button 
-                    type="button"
-                    onClick={handleAddToCart}
-                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-md transition"
-                  >
-                    Agregar
-                  </button>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <input 
+                      type="number" 
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      placeholder="Cant."
+                      min="1"
+                      className="w-20 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white"
+                    />
+                    <button 
+                      type="button"
+                      onClick={handleAddToCart}
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-md transition whitespace-nowrap flex items-center gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Agregar</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 

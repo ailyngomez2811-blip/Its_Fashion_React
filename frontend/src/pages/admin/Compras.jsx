@@ -430,7 +430,7 @@ const Compras = () => {
                   >
                     <option value="">Selecciona proveedor</option>
                     {suppliers.map(s => (
-                      <option key={s._id} value={s._id}>{s.nombre} (NIT: {s.nit_rut})</option>
+                      <option key={s._id} value={s._id}>{s.nombre} ({s.documento || s.nit_rut || 'Sin Doc'})</option>
                     ))}
                   </select>
                 </div>
@@ -456,11 +456,11 @@ const Compras = () => {
               {/* Agregar producto */}
               <div className="border-t border-slate-100 pt-4 space-y-3">
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">Añadir Prenda a la Orden</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <select 
                     value={selectedProdId}
                     onChange={(e) => setSelectedProdId(e.target.value)}
-                    className="sm:col-span-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    className="flex-1 min-w-0 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer truncate"
                   >
                     <option value="">Selecciona prenda...</option>
                     {products.map(p => (
@@ -469,15 +469,15 @@ const Compras = () => {
                       </option>
                     ))}
                   </select>
-                  <input 
-                    type="number" 
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    placeholder="Cantidad"
-                    min="1"
-                    className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
+                    <input 
+                      type="number" 
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      placeholder="Cant."
+                      min="1"
+                      className="w-20 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-center focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
                     <input 
                       type="number" 
                       value={costPrice}
@@ -485,12 +485,12 @@ const Compras = () => {
                       placeholder="Precio Compra ($)"
                       min="0.01"
                       step="0.01"
-                      className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-36 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                     <button 
                       type="button"
                       onClick={handleAddToCart}
-                      className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-md transition"
+                      className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-md transition whitespace-nowrap"
                     >
                       Añadir
                     </button>
